@@ -1,5 +1,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+from asgiref.sync import sync_to_async
+from .models import Message
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -7,7 +9,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.room_name = "public_chat"
         self.room_group_name = "chat_%s" % self.room_name
 
-        # Guruhga ulanish
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
@@ -16,7 +17,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.accept()
 
     async def disconnect(self, close_code):
-        # Guruhdan chiqish
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
@@ -25,20 +25,24 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         data = json.loads(text_data)
         message = data["message"]
+        username = "Anonymous"  # yoki request.user.username
 
-        # Guruhga xabar yuborish
+        await self.save_message(username, message)
+
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 "type": "chat_message",
-                "message": message,
+                "message": f"{username}: {message}",
             }
         )
 
     async def chat_message(self, event):
         message = event["message"]
-
-        # Foydalanuvchiga xabar yuborish
         await self.send(text_data=json.dumps({
             "message": message
         }))
+
+    @sync_to_async
+    def save_message(self, username, content):
+        Message.objects.create(username=username, content=content)
