@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat</title>
+</head>
+<body>
+<h1>Chat sahifasi</h1>
+<input id="messageInput" type="text" placeholder="Xabar yozing..."/>
+<button onclick="sendMessage()">Yuborish</button>
+
+<ul id="chatLog"></ul>
+
+<script>
+    const chatSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/chat/'
+    );
+
+    chatSocket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+        document.querySelector('#chatLog').innerHTML += '<li>' + data.message + '</li>';
+    };
+
+    function sendMessage() {
+        const input = document.querySelector('#messageInput');
+        const message = input.value;
+        chatSocket.send(JSON.stringify({'message': message}));
+        input.value = '';
+    }
+</script>
+</body>
+</html>
