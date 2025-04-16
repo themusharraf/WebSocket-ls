@@ -17,3 +17,9 @@ application = ProtocolTypeRouter({
         )
     ),
 })
+
+"""
+http://127.0.0.1:8000/chat/john/ — admin user bu sahifaga kirsa, admin <-> john xonasi ochiladi.
+WebSocket URL bo‘ladi: ws://127.0.0.1:8000/ws/chat/john/
+Faqat 2 foydalanuvchi o‘rtasida chat ishlaydi (admin, john) va boshqa hech kim kira olmaydi
+"""  # noqa
