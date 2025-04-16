@@ -1,30 +1,44 @@
 <!DOCTYPE html>
-<html>
+<html lang="uz">
 <head>
-    <title>Chat</title>
+    <meta charset="UTF-8">
+    <title>1:1 Chat</title>
 </head>
 <body>
-<h1>Chat sahifasi</h1>
-<input id="messageInput" type="text" placeholder="Xabar yozing..."/>
+<h2>1:1 Chat</h2>
+
+<p><strong>Siz:</strong> <span id="me">{{ user.username }}</span></p>
+<p><strong>Chatdosh:</strong> <span id="other">{{ other_username }}</span></p>
+
+<input id="messageInput" type="text" placeholder="Xabar yozing..." />
 <button onclick="sendMessage()">Yuborish</button>
 
 <ul id="chatLog"></ul>
 
 <script>
+    const me = "{{ user.username }}";
+    const other = "{{ other_username }}";
+
+    const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
     const chatSocket = new WebSocket(
-        'ws://' + window.location.host + '/ws/chat/'
+        wsScheme + '://' + window.location.host + '/ws/chat/' + other + '/'
     );
 
     chatSocket.onmessage = function (e) {
         const data = JSON.parse(e.data);
-        document.querySelector('#chatLog').innerHTML += '<li>' + data.message + '</li>';
+        const log = document.querySelector('#chatLog');
+        const li = document.createElement("li");
+        li.textContent = data.message;
+        log.appendChild(li);
     };
 
     function sendMessage() {
-        const input = document.querySelector('#messageInput');
-        const message = input.value;
-        chatSocket.send(JSON.stringify({'message': message}));
-        input.value = '';
+        const input = document.getElementById("messageInput");
+        const message = input.value.trim();
+        if (message) {
+            chatSocket.send(JSON.stringify({ message }));
+            input.value = "";
+        }
     }
 </script>
 </body>

@@ -1,19 +1,23 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
-from asgiref.sync import sync_to_async
-from .models import Message
 
 
-class ChatConsumer(AsyncWebsocketConsumer):
+class PrivateChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.room_name = "public_chat"
-        self.room_group_name = "chat_%s" % self.room_name
+        self.me = self.scope['user'].username if self.scope['user'].is_authenticated else None
+        self.other_username = self.scope['url_route']['kwargs'].get('username')
+
+        if not self.me or self.me == self.other_username:
+            await self.close()
+            return
+
+        # 1:1 xonani yaratamiz
+        self.room_group_name = self.get_room_name(self.me, self.other_username)
 
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
-
         await self.accept()
 
     async def disconnect(self, close_code):
@@ -24,25 +28,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
-        message = data["message"]
-        username = "Anonymous"  # yoki request.user.username
-
-        await self.save_message(username, message)
+        message = data.get("message", "")
 
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 "type": "chat_message",
-                "message": f"{username}: {message}",
+                "message": f"{self.me}: {message}",
             }
         )
 
     async def chat_message(self, event):
-        message = event["message"]
         await self.send(text_data=json.dumps({
-            "message": message
+            "message": event["message"]
         }))
 
-    @sync_to_async
-    def save_message(self, username, content):
-        Message.objects.create(username=username, content=content)
+    def get_room_name(self, user1, user2):
+        # 2 foydalanuvchini tartiblab bir xonaga joylaymiz
+        return "_".join(sorted([user1, user2]))
